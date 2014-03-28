@@ -1,0 +1,37 @@
+<head>
+  <title>blaze</title>
+  <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&libraries=geometry,drawing&sensor=true"></script>
+  <base target="_new"/>
+</head>
+
+<body>
+  {{> hello}}
+
+  {{> tabs}}
+  
+</body>
+
+<template name="hello">
+  <input type="checkbox" id="show_map" value="show_map" {{showMapChecked}}/>
+  <label> Show Map (to test template destroy)</label>
+  <label> | Show:</label>
+  <input type="radio" name="show_all" id="show_all" value="show_all" {{showAllChecked}}/> all Markers
+  <input type="radio" name="show_all" id="show_all" value="show_bound" {{showBoundChecked}}/> only inside Boundary
+  {{release}}<span class="error">{{message}}</span>
+</template>
+
+<template name="tabs">
+	{{#if showMap}}
+		{{> map}}
+	{{/if}}
+</template>
+
+<template name="map">
+  <div class="map_container">
+  <p>You can zoom around on the map and add markers by clicking on the marker icon <img src="/marker.png"> of the <a href=https://developers.google.com/maps/documentation/javascript/drawing>Drawing Manager</a>. Grab a marker and drag it to a different location. Click on a marker to edit it's title or delete it. Other users looking at the same map location will see changes you make to the map in real time (fully reactive).</p>
+  <p>The boundary is something you can draw on the map as polygon <img src="/polygon.png"> with the <a href=https://developers.google.com/maps/documentation/javascript/drawing>Drawing Manager</a>. It is just a test to play the MongoDB <code>$geoWithin $geometry</code> query and is not being shared with other users looking at the map (not reactive)</p>
+    <input type="button" class="goto_bounds" value="Goto Boundary" />
+    <input type="button" class="goto_myself" value="Goto Where I am" />
+  	<div id="map" class="map"></div>
+  </div>
+</template>
