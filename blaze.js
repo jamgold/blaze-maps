@@ -106,8 +106,12 @@ if (Meteor.isClient) {
             {
               var loc = new google.maps.LatLng( R2D(newMarker.location.coordinates[1]), R2D(newMarker.location.coordinates[0]) );
               marker.setPosition( loc );
+              // map_canvas.mc.resetViewport();
             }
-            map_canvas.mc.resetViewport();
+            marker.setAnimation(google.maps.Animation.BOUNCE);
+            Meteor.setTimeout(function(){
+              marker.setAnimation(null);
+            }, 1500);
           }
           else changingMarker = null;
         },
@@ -574,6 +578,7 @@ if (Meteor.isClient) {
     'change input.marker_title' : function (event, template) {
       event.preventDefault();
       console.log(event.target.value);
+      changingMarker = event.target.id;
       Markers.update({_id: event.target.id },{$set:{title: event.target.value}});
       map_canvas.infowindow.close();
     },
