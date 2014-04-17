@@ -53,16 +53,16 @@ if (Meteor.isClient) {
 
         case 'polygon':
 
-        if( $('input[name=show_all]:checked').val() == "show_bound")
-          Session.set("geometry", {
-            type: 'polygon',
-            coordinates: path2mongo(map_canvas.BoundedArea.getPath())
-          });
+          if( $('input[name=show_all]:checked').val() == "show_bound")
+            Session.set("geometry", {
+              type: 'polygon',
+              coordinates: path2mongo(map_canvas.BoundedArea.getPath())
+            });
 
-          Session.set('boundedArea', {
-            type:'polygon', 
-            coordinates: google.maps.geometry.encoding.encodePath(event.overlay.getPath())
-          });
+            Session.set('boundedArea', {
+              type:'polygon', 
+              coordinates: google.maps.geometry.encoding.encodePath(map_canvas.BoundedArea.getPath())
+            });
         break;
 
 
@@ -107,6 +107,7 @@ if (Meteor.isClient) {
               var loc = new google.maps.LatLng( R2D(newMarker.location.coordinates[1]), R2D(newMarker.location.coordinates[0]) );
               marker.setPosition( loc );
             }
+            map_canvas.mc.resetViewport();
           }
           else changingMarker = null;
         },
@@ -126,6 +127,8 @@ if (Meteor.isClient) {
                 title: newMarker.title
             });
             marker.id = newMarker._id;
+
+            map_canvas.mc.addMarker(marker);
 
             map_canvas.markers[marker.id] = marker;
 
@@ -161,9 +164,10 @@ if (Meteor.isClient) {
           if(map_canvas.markers[oldMarker._id] != undefined)
           {
             var marker = map_canvas.markers[oldMarker._id];
-            marker.setMap(null);
+            map_canvas.mc.removeMarker(marker);
+            // marker.setMap(null);
             delete(map_canvas.markers[oldMarker._id]);
-            console.log('removed '+oldMarker._id);
+            // console.log('removed '+oldMarker._id);
           }
         }
       });
@@ -260,6 +264,7 @@ if (Meteor.isClient) {
 
     map_canvas.markers = {};
     map_canvas.map = new google.maps.Map(map_canvas, mapOptions);
+    map_canvas.mc = new MarkerClusterer(map_canvas.map,[], {gridSize: 50, maxZoom: 15});
     map_canvas.map.dragended = true;
     // our infowindow for the markers
     map_canvas.infowindow = new google.maps.InfoWindow({
@@ -576,7 +581,7 @@ if (Meteor.isClient) {
       event.preventDefault();
       map_canvas.infowindow.close();
       Markers.remove({_id: event.target.id });
-      // console.log(event.target.id);
+      console.log(event.target.id);
     }
   });
 
