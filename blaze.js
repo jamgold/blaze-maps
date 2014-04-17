@@ -9,6 +9,11 @@ function R2D(rad) {
 };
 
 if (Meteor.isClient) {
+  UI.registerHelper('testMe', function(t) {
+      // console.log(arguments);
+      return 'Helper Test:'+t;
+  });
+  
   map_canvas = null;
   changingMarker = null;
   markersObservation = null;
@@ -17,6 +22,55 @@ if (Meteor.isClient) {
 
   Session.setDefault("show_all", true);
   Session.setDefault("show_map", true);
+  Session.setDefault('EARTH_RADIUS', 300000000);
+  Session.setDefault('boundedArea', {
+    type:'polygon', 
+    coordinates: 'uepeFd}vjVkLs`HwFq}@ds@gJxBtW_BhKK`GjMhxH'
+  });
+
+  function setBoundedGeometry() {
+    if(map_canvas.BoundedArea)
+    {
+      console.log('setBoundedGeometry: '+map_canvas.BoundedAreaType);
+      switch(map_canvas.BoundedAreaType)
+      {
+        case 'circle':
+          var c = map_canvas.BoundedArea.getCenter();
+          var r = map_canvas.BoundedArea.getRadius();
+          if( $('input[name=show_all]:checked').val() == "show_bound")
+            Session.set("geometry", {
+              type: 'circle',
+              coordinates: [ D2R(c.lng()), D2R(c.lat()) ],
+              radius: r / Session.get('EARTH_RADIUS')
+            });
+
+          Session.set('boundedArea', {
+            type:'circle', 
+            radius: r,
+            coordinates: c.toString().replace(/[() ]/g,'')
+          });
+        break;
+
+        case 'polygon':
+
+        if( $('input[name=show_all]:checked').val() == "show_bound")
+          Session.set("geometry", {
+            type: 'polygon',
+            coordinates: path2mongo(map_canvas.BoundedArea.getPath())
+          });
+
+          Session.set('boundedArea', {
+            type:'polygon', 
+            coordinates: google.maps.geometry.encoding.encodePath(event.overlay.getPath())
+          });
+        break;
+
+
+        default:
+
+      }      
+    }
+  }
 
   function path2mongo(path) {
     var coords = []
@@ -148,7 +202,7 @@ if (Meteor.isClient) {
   };
 
   Template.hello.rendered = function() {
-    console.clear();
+    // console.clear();
     console.log("rendered "+this.__component__.kind);
     // console.log(this);
     // console.log(UI.body);
@@ -174,7 +228,8 @@ if (Meteor.isClient) {
   };
 
   Template.map.rendered = function() {
-    if (!google.maps.Polygon.prototype.getBounds) {
+    if (!google.maps.Polygon.prototype.getBounds)
+    {
        google.maps.Polygon.prototype.getBounds = function(latLng) {
           var bounds = new google.maps.LatLngBounds();
           var path = this.getPath();
@@ -184,7 +239,8 @@ if (Meteor.isClient) {
           return bounds;
        }
     }
-    if(!google.maps.LatLng.prototype.mongoCoords) {
+    if(!google.maps.LatLng.prototype.mongoCoords)
+    {
       google.maps.LatLng.prototype.mongoCoords = function() {
         return [ D2R(this.lng()), D2R(this.lat()) ]
       }
@@ -212,15 +268,6 @@ if (Meteor.isClient) {
     //
     // create a default area in golden gate park
     //
-    map_canvas.BoundedArea = new google.maps.Polygon({
-      path: google.maps.geometry.encoding.decodePath( "uepeFd}vjVkLs`HwFq}@ds@gJxBtW_BhKK`GjMhxH" ),
-      strokeColor: '#FF0000',
-      strokeOpacity: 0.8,
-      strokeWeight: 2,
-      fillColor: '#FF0000',
-      fillOpacity: 0.35
-    });
-    map_canvas.BoundedArea.setMap(map_canvas.map);
     //
     // initialize our drawing manager
     //
@@ -231,7 +278,7 @@ if (Meteor.isClient) {
         position: google.maps.ControlPosition.TOP_CENTER,
         drawingModes: [
           google.maps.drawing.OverlayType.MARKER,
-          // google.maps.drawing.OverlayType.CIRCLE,
+          google.maps.drawing.OverlayType.CIRCLE,
           google.maps.drawing.OverlayType.POLYGON,
           // google.maps.drawing.OverlayType.POLYLINE,
           // google.maps.drawing.OverlayType.RECTANGLE
@@ -245,16 +292,18 @@ if (Meteor.isClient) {
         strokeOpacity: 0.8,
         strokeWeight: 2,
         fillColor: '#FF0000',
-        fillOpacity: 0.35
+        fillOpacity: 0.35,
+        editable: true
       },
-      // circleOptions: {
-      //   fillColor: '#ffff00',
-      //   fillOpacity: 1,
-      //   strokeWeight: 5,
-      //   clickable: false,
-      //   editable: true,
-      //   zIndex: 1
-      // }
+      circleOptions: {
+        fillColor: '#ff0000',
+        fillOpacity: 0.38,
+        strokeColor: '#FF0000',
+        strokeWeight: 2,
+        strokeOpacity: 0.8,
+        zIndex: 1,
+        editable: true
+      }
     });
     map_canvas.drawingManager.setMap(map_canvas.map);
     //
@@ -262,7 +311,8 @@ if (Meteor.isClient) {
     //
     google.maps.event.addListener(map_canvas.drawingManager, 'overlaycomplete', function(event) {
       // handle new markers
-      if (event.type == google.maps.drawing.OverlayType.MARKER) {
+      if (event.type == google.maps.drawing.OverlayType.MARKER)
+      {
         var loc = event.overlay.getPosition();
         //
         // we should check if the location falls within the boundaries of 
@@ -297,14 +347,33 @@ if (Meteor.isClient) {
         event.overlay.setMap(null);
       }
 
-      if (event.type == google.maps.drawing.OverlayType.POLYGON) {
-        // console.log( google.maps.geometry.encoding.encodePath(event.overlay.getPath()));
-        map_canvas.BoundedArea.setMap(null);
+      if (event.type == google.maps.drawing.OverlayType.POLYGON)
+      {
+        if(map_canvas.BoundedArea) map_canvas.BoundedArea.setMap(null);
+        map_canvas.BoundedAreaType = 'polygon';
         map_canvas.BoundedArea = event.overlay;
-        if( $('input[name=show_all]:checked').val() == "show_bound")
-          Session.set("geometry", {type: 'polygon', coordinates: path2mongo(map_canvas.BoundedArea.getPath())});
         // reset drawing mode
         map_canvas.drawingManager.setDrawingMode(null);
+
+        setBoundedGeometry();
+      }
+
+      if (event.type == google.maps.drawing.OverlayType.CIRCLE)
+      {
+        if(map_canvas.BoundedArea) map_canvas.BoundedArea.setMap(null);
+        map_canvas.BoundedArea = event.overlay;
+        map_canvas.BoundedAreaType = 'circle';
+        // reset drawing mode
+        map_canvas.drawingManager.setDrawingMode(null);
+
+        setBoundedGeometry();
+
+        google.maps.event.addListener(map_canvas.BoundedArea, 'center_changed', function(e){
+          setBoundedGeometry();
+        });
+        google.maps.event.addListener(map_canvas.BoundedArea, 'radius_changed', function(){
+          setBoundedGeometry();
+        });
       }
     });
   
@@ -336,6 +405,7 @@ if (Meteor.isClient) {
       if( $('input[name=show_all]:checked').val() == "show_all")
       {
         this.dragended = true;
+        setBoundedGeometry();
         Session.set('geometry', {type:'box', coordinates: [
           this.getBounds().getSouthWest().mongoCoords(),
           this.getBounds().getNorthEast().mongoCoords(),
@@ -373,6 +443,49 @@ if (Meteor.isClient) {
           }
         });
       });
+      var b = Session.get('boundedArea');
+      if(b.coordinates != undefined && typeof b.coordinates == 'string')
+      {
+        if(b.type == 'polygon')
+        {
+          map_canvas.BoundedArea = new google.maps.Polygon({
+            path: google.maps.geometry.encoding.decodePath(b.coordinates),
+            strokeColor: '#FF0000',
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: '#FF0000',
+            fillOpacity: 0.35
+          });
+          map_canvas.BoundedAreaType = 'polygon';
+        }
+        else if(b.type == 'circle')
+        {
+          var c = b.coordinates.split(/,/);
+          if(b.radius == undefined) b.radius = 100;
+          map_canvas.BoundedArea = new google.maps.Circle({
+            center: new google.maps.LatLng(c[0],c[1]),
+            radius: b.radius,
+            strokeColor: '#FF0000',
+            strokeOpacity: 0.8,
+            strokeWeight: 2,
+            fillColor: '#FF0000',
+            fillOpacity: 0.35,
+            editable: true
+          });
+          map_canvas.BoundedAreaType = 'circle';
+          google.maps.event.addListener(map_canvas.BoundedArea, 'center_changed', function(){
+            setBoundedGeometry();
+          });
+          google.maps.event.addListener(map_canvas.BoundedArea, 'radius_changed', function(){
+            setBoundedGeometry();
+          });
+        }
+        // console.log(map_canvas.BoundedArea);
+        if(map_canvas.BoundedArea)
+        {
+          map_canvas.BoundedArea.setMap(map_canvas.map);
+        }
+      }
     });
   }
 
@@ -398,7 +511,7 @@ if (Meteor.isClient) {
             }
             else
             {
-              Session.set("geometry", {type: 'polygon', coordinates: path2mongo(map_canvas.BoundedArea.getPath())});
+              setBoundedGeometry();
               Session.set(s, false);
             }
           }
@@ -472,6 +585,9 @@ if (Meteor.isClient) {
       return Session.get("show_map");
     }
   });
+
+  Meteor.startup(function(){
+  });
 }
 
 if (Meteor.isServer) {
@@ -482,23 +598,48 @@ if (Meteor.isServer) {
 
   Meteor.publish("markers", function ( geometry ) {
     // console.log(geometry);
-    return geometry.type == 'box'
-      ? Markers.find({
-        location: {
-          $geoWithin: {
-            $box: geometry.coordinates
-          }
-        }
-      })
-      : Markers.find({
+    var c = null;
+    switch(geometry.type)
+    {
+      case 'box':
+      var q = {
           location: {
             $geoWithin: {
-              $geometry: {
-                type: "Polygon",
-                coordinates: [ geometry.coordinates ]
-              }
+              $box: geometry.coordinates
             }
           }
-      });
+        };
+        // console.log(EJSON.stringify(q));
+        c = Markers.find(q);
+      break;
+
+      case 'circle':
+      var c = geometry.coordinates;
+      var r = geometry.radius;
+        var q = {
+          location: {
+            $geoWithin: {
+              $centerSphere: [ c, r ]
+            }
+          }
+        };
+        // console.log(EJSON.stringify(q));
+
+        c = Markers.find(q);
+      break;
+
+      default:
+        c = Markers.find({
+            location: {
+              $geoWithin: {
+                $geometry: {
+                  type: "Polygon",
+                  coordinates: [ geometry.coordinates ]
+                }
+              }
+            }
+        });
+    }
+    return c;
   });
 }
