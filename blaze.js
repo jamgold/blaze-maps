@@ -27,6 +27,7 @@ if (Meteor.isClient) {
     type:'polygon', 
     coordinates: 'uepeFd}vjVkLs`HwFq}@ds@gJxBtW_BhKK`GjMhxH'
   });
+  Session.setDefault('resize', null);
 
   function setBoundedGeometry() {
     if(map_canvas.BoundedArea)
@@ -184,44 +185,48 @@ if (Meteor.isClient) {
     else console.log('already observerMarkers');
   };
 
-  Template.hello.release = function() {
-    return '(Meteor '+Meteor.release+')';
-  };
-
-  Template.hello.message = function() {
-    return Session.get('message');
-  };
-
-  Template.hello.showAllChecked = function () {
-    var b = Session.get("show_all"); 
-    console.log('hello.showAll?'+b);
-    return b ? "checked" : "";
-  };
-
-  Template.hello.showBoundChecked = function () {
-    var b = Session.get("show_all"); 
-    console.log('hello.showBound?'+!b);
-    return !b ? "checked" : "";
-  };
-
-  Template.hello.showMapChecked = function () {
-    console.log('hello.showMap?');
-    return Session.get("show_map") ? "checked" : "";
-  };
+  Template.hello.helpers({
+    release: function() {
+      return '(Meteor '+Meteor.release+')';
+    },
+    message: function() {
+      return Session.get('message');
+    },
+    showAllChecked: function () {
+      var b = Session.get("show_all"); 
+      console.log('hello.showAll?'+b);
+      return b ? "checked" : "";
+    },
+    showBoundChecked: function () {
+      var b = Session.get("show_all"); 
+      console.log('hello.showBound?'+!b);
+      return !b ? "checked" : "";
+    },
+    showMapChecked: function () {
+      console.log('hello.showMap?');
+      return Session.get("show_map") ? "checked" : "";
+    },
+    resize: function(){
+      var date = Session.get('resize');
+      var width = $(window).width();
+      var height = $(window).height();
+      // console.log('resize to '+width+'x'+height);
+      //doSomethingCool(width, height);
+      if(map_canvas != null && map_canvas.map != undefined)
+        google.maps.event.trigger(map_canvas.map, "resize");
+      return width+'x'+height;
+    } 
+  });
 
   Template.hello.rendered = function() {
     // console.clear();
-    console.log("rendered "+this.__component__.kind);
+    console.log("rendered ",this.view.name);
     // console.log(this);
     // console.log(UI.body);
   };
 
-  Template.map.initialized = function() {
-    console.log("initialized "+this.__component__.kind);
-  };
-
   Template.map.created = function() {
-    console.log("created "+this.__component__.kind);
+    console.log("created ",this.view.name);
   };
 
   Template.map.destroyed = function() {
@@ -232,7 +237,7 @@ if (Meteor.isClient) {
     }
     this.map_canvas = null;
 
-    console.log("destroyed "+this.__component__.kind);
+    console.log("destroyed ",this.view.name);
   };
 
   Template.map.rendered = function() {
@@ -388,7 +393,7 @@ if (Meteor.isClient) {
   
     this.map_canvas = map_canvas;
 
-    console.log("rendered "+this.__component__.kind);
+    console.log("rendered ",this.view.name);
 
     mapTemplate = this;
 
@@ -597,6 +602,9 @@ if (Meteor.isClient) {
   });
 
   Meteor.startup(function(){
+    $(window).resize(function(e) {
+      Session.set("resize", new Date());
+    });
   });
 }
 
