@@ -5,4 +5,5 @@
 
 standard-app-packages
 insecure
-standard-minifiers
+standard-minifier-css
+standard-minifier-js

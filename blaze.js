@@ -489,6 +489,10 @@ if (Meteor.isClient) {
                 }
             }
         });
+
+        // google.maps.event.addListener(map_canvas.map, 'click', function(e) {
+        //     console.log(e.latLng.toString());
+        // });
     });
 
     Template.hello.events({
